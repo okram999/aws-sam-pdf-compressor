@@ -53,7 +53,6 @@ Resources:
             BucketName: !Sub "compressed-pdf-bucket-${AWS::AccountId}"
 
 # Source S3 bucket
-# Add an event notification for all PUT operation to the lambda PDFCompressionFunction
   SourceBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -66,3 +65,21 @@ Resources:
     Properties:
       BucketName: !Sub "compressed-pdf-bucket-${AWS::AccountId}"
       AccessControl: Private
+
+# Stack outputs
+Outputs:
+  SourceBucketName:
+    Description: "Source S3 bucket name"
+    Value: !Ref SourceBucket
+  DestinationBucketName:
+    Description: "Destination S3 bucket name"
+    Value: !Ref DestinationBucket
+  PDFCompressionFunction:
+    Description: "PDF compression Lambda Function ARN"
+    Value: !GetAtt PDFCompressionFunction.Arn
+  PDFCompressionFunctionIamRole:
+    Description: "Implicit IAM Role created for PDF compression function"
+    Value: !GetAtt PDFCompressionFunctionRole.Arn
+  PDFCompressionLambdaLayer:
+    Description: "PDF compression Lambda layer ARN"
+    Value: !Ref PDFCompressionLambdaLayer
