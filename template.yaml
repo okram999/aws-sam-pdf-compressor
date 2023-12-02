@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Compress PDF files
+
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 300
+
+Resources:
+
+# Create AWS Lambda layer
+# Libraries in the dependencies/ folder are published into the AWS Lambda layer
+  PDFCompressionLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: pdf-file-compression-layer
+      Description: Lambda layer for compressing PDF files
+      ContentUri: dependencies/
+      CompatibleRuntimes:
+        - python3.7
+        - python3.8
+        - python3.9
+        - python3.11   
+
+# Another lambda getting deployed 
+  PDFCompressionFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: lambda/
+      Handler: pdf-compression-lambda.lambda_handler
+      Runtime: python3.11
+      Architectures:
+        - x86_64
+      Layers:
+        - !Ref PDFCompressionLambdaLayer
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref SourceBucket
+            Events: s3:ObjectCreated:Put
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: .pdf
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Sub "source-bucket-${AWS::AccountId}"
+        - S3WritePolicy:
+            BucketName: !Sub "compressed-pdf-bucket-${AWS::AccountId}"
+
+# Source S3 bucket
+# Add an event notification for all PUT operation to the lambda PDFCompressionFunction
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "source-bucket-${AWS::AccountId}"
+      AccessControl: Private
+
+# Destination S3 bucket
+  DestinationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "compressed-pdf-bucket-${AWS::AccountId}"
+      AccessControl: Private
